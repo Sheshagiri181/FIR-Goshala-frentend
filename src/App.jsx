@@ -2,23 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 const DAILY_RATE = 250
-const MAX_FOLLOW_UP_DATES = 10
 const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '')
-
-const normalizeFollowUpDates = (value = []) => {
-  const items = Array.isArray(value) ? value : []
-  const normalized = items.map((item) => {
-    if (typeof item === 'string') {
-      return { date: item, reason: '' }
-    }
-    return {
-      date: item?.date || '',
-      reason: item?.reason || '',
-    }
-  }).filter((item) => item.date || item.reason)
-
-  return normalized.length ? normalized : [{ date: '', reason: '' }]
-}
 
 const today = () => new Date().toISOString().slice(0, 10)
 const dateLabel = (value) => value
@@ -83,7 +67,6 @@ function App() {
   const [saveError, setSaveError] = useState('')
   const [isLoadingRecords, setIsLoadingRecords] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [followUpDates, setFollowUpDates] = useState(() => normalizeFollowUpDates(editingRecord?.followUpDates))
 
   const loadRecords = useCallback(async () => {
     setIsLoadingRecords(true)
@@ -118,31 +101,6 @@ function App() {
     }
   }, [])
 
-  function updateFollowUpDate(index, field, value) {
-    setFollowUpDates((currentDates) => {
-      const nextDates = [...currentDates]
-      nextDates[index] = {
-        ...nextDates[index],
-        [field]: value,
-      }
-      return nextDates
-    })
-  }
-
-  function addFollowUpDate() {
-    setFollowUpDates((currentDates) => {
-      if (currentDates.length >= MAX_FOLLOW_UP_DATES) return currentDates
-      return [...currentDates, { date: '', reason: '' }]
-    })
-  }
-
-  function removeFollowUpDate(index) {
-    setFollowUpDates((currentDates) => {
-      if (currentDates.length === 1) return [{ date: '', reason: '' }]
-      return currentDates.filter((_, currentIndex) => currentIndex !== index)
-    })
-  }
-
   const filteredRecords = useMemo(() => records
     .filter((record) => stageFilter === 'all' || stageFor(record) === Number(stageFilter))
     .filter((record) => {
@@ -167,7 +125,6 @@ function App() {
 
   function openEditor(record = null) {
     setEditingRecord(record)
-    setFollowUpDates(normalizeFollowUpDates(record?.followUpDates))
     setSaveError('')
     setShowEditor(true)
   }
@@ -178,10 +135,6 @@ function App() {
     setSaveError('')
     const formData = new FormData(event.currentTarget)
     const { important, ...values } = Object.fromEntries(formData.entries())
-    const cleanedFollowUpDates = followUpDates
-      .map(({ date, reason }) => ({ date: date.trim(), reason: reason.trim() }))
-      .filter((item) => item.date || item.reason)
-      .slice(0, MAX_FOLLOW_UP_DATES)
 
     const record = {
       ...values,
@@ -189,7 +142,6 @@ function App() {
       cowCount: Number(values.cowCount),
       finalOrderAmount: Number(values.finalOrderAmount || 0),
       important: important === 'on',
-      followUpDates: cleanedFollowUpDates,
     }
     try {
       const savedRecord = await apiRequest(
@@ -337,33 +289,19 @@ function App() {
                     {selectedRecord.otherPersons && <div className="note-row"><dt>Other persons in vehicle</dt><dd>{selectedRecord.otherPersons}</dd></div>}
                     <div><dt>Cattle in custody</dt><dd>{selectedRecord.cowCount} <span>cattle</span></dd></div>
                     <div><dt>Police station</dt><dd>{selectedRecord.policeStation}</dd></div>
-                    {selectedRecord.state && <div><dt>State</dt><dd>{selectedRecord.state}</dd></div>}
-                    {selectedRecord.district && <div><dt>District</dt><dd>{selectedRecord.district}</dd></div>}
+                    {(selectedRecord.district || selectedRecord.state) && <div><dt>District / State</dt><dd>{[selectedRecord.district, selectedRecord.state].filter(Boolean).join(', ')}</dd></div>}
                   </dl>
                   <div className="detail-section-title section-spaced"><span className="section-kicker">02 / FIELD REPORT</span><span className="section-rule" /></div>
                   <dl className="data-list">
                     <div><dt>Court filing date</dt><dd>{dateLabel(selectedRecord.fieldDate)}</dd></div>
+                    {selectedRecord.fileNo && <div><dt>File number</dt><dd className="mono">{selectedRecord.fileNo}</dd></div>}
                     {selectedRecord.courtName && <div><dt>Court name</dt><dd>{selectedRecord.courtName}</dd></div>}
-                    {selectedRecord.followUpDates?.length > 0 && (
-                      <div className="note-row follow-up-row">
-                        <dt>Follow-up dates</dt>
-                        <dd>
-                          {normalizeFollowUpDates(selectedRecord.followUpDates)
-                            .filter((item) => item.date || item.reason)
-                            .map(({ date, reason }) => {
-                              const dateText = date ? dateLabel(date) : 'No date'
-                              return reason ? `${dateText} — ${reason}` : dateText
-                            })
-                            .join(' | ')}
-                        </dd>
-                      </div>
-                    )}
                     <div className="note-row"><dt>Field note</dt><dd>{selectedRecord.fieldNote || 'No field note recorded.'}</dd></div>
                   </dl>
                 </div>
                 <div className="detail-column">
                   <div className="detail-section-title"><span className="section-kicker">03 / CUSTODY & ORDER</span><span className="section-rule" /></div>
-                  <div className="goshala-block"><span className="mini-label">REGISTERED GOSHALA</span><strong>{selectedRecord.goshalaName}</strong><span>{selectedRecord.goshalaAddress}</span><a href={`tel:${selectedRecord.goshalaPhone}`}>{selectedRecord.goshalaPhone}</a></div>
+                  <div className="goshala-block"><span className="mini-label">REGISTERED GOSHALA</span><strong>{selectedRecord.goshalaName}</strong><span>{selectedRecord.goshalaAddress}</span>{selectedRecord.goshalaPhone && <a href={`tel:${selectedRecord.goshalaPhone}`}>{selectedRecord.goshalaPhone}</a>}</div>
                   <dl className="data-list order-data">
                     <div><dt>Final order date</dt><dd>{dateLabel(selectedRecord.finalOrderDate)}</dd></div>
                     {Number(selectedRecord.finalOrderAmount || 0) > 0 && <div><dt>Amount given after final order</dt><dd>{money(Number(selectedRecord.finalOrderAmount || 0))}</dd></div>}
@@ -402,50 +340,13 @@ function App() {
           <div className="form-grid"><label>FIR number<input name="firNo" defaultValue={editingRecord?.firNo} required placeholder="e.g. 151/2026" /></label><label>FIR date<input name="firDate" type="date" defaultValue={editingRecord?.firDate || today()} required /></label><label>Police station<input name="policeStation" defaultValue={editingRecord?.policeStation} required /></label><label>State <span className="optional-label">OPTIONAL</span><input name="state" defaultValue={editingRecord?.state} placeholder="State" /></label><label>District <span className="optional-label">OPTIONAL</span><input name="district" defaultValue={editingRecord?.district} placeholder="District" /></label><label>Vehicle number<input name="vehicleNo" defaultValue={editingRecord?.vehicleNo} required placeholder="RJ 00 AA 0000" /></label><label>Registered vehicle owner <span className="optional-label">OPTIONAL</span><input name="vehicleOwnerName" defaultValue={editingRecord?.vehicleOwnerName} /></label><label>Driver name <span className="optional-label">OPTIONAL</span><input name="driverName" defaultValue={editingRecord?.driverName} /></label><label>Driver phone <span className="optional-label">OPTIONAL</span><input name="driverPhone" type="tel" defaultValue={editingRecord?.driverPhone} /></label><label className="span-two">Other persons in vehicle <span className="optional-label">OPTIONAL</span><textarea name="otherPersons" rows="2" defaultValue={editingRecord?.otherPersons} placeholder="Names of other occupants, separated by commas" /></label><label>Cattle count<input name="cowCount" type="number" min="1" defaultValue={editingRecord?.cowCount || 1} required /></label></div>
           <div className="form-section-label">02 <span>FIELD REPORT</span></div>
           <div className="form-grid">
+            <label>File number <span className="optional-label">OPTIONAL</span><input name="fileNo" defaultValue={editingRecord?.fileNo} placeholder="Enter file number" /></label>
             <label>Court filing date<input name="fieldDate" type="date" defaultValue={editingRecord?.fieldDate} /></label>
             <label>Court name <span className="optional-label">OPTIONAL</span><input name="courtName" defaultValue={editingRecord?.courtName} placeholder="e.g. District Court, Jaipur" /></label>
-            <div className="span-two follow-up-block">
-              <div className="follow-up-header">
-                <span>Follow-up dates <span className="optional-label">OPTIONAL</span></span>
-                <button type="button" className="button button-outline tiny-button" onClick={addFollowUpDate} disabled={followUpDates.length >= MAX_FOLLOW_UP_DATES}>Add date</button>
-              </div>
-              <div className="follow-up-columns" aria-hidden="true">
-                <span>Follow-up date</span>
-                <span>Reason</span>
-                <span />
-              </div>
-              <div className="follow-up-list">
-                {followUpDates.map((item, index) => (
-                  <div key={`follow-up-${index}`} className="follow-up-item">
-                    <div className="follow-up-fields">
-                      <input
-                        type="date"
-                        value={item.date}
-                        onChange={(event) => updateFollowUpDate(index, 'date', event.target.value)}
-                        aria-label={`Follow-up date ${index + 1}`}
-                      />
-                      <input
-                        type="text"
-                        value={item.reason}
-                        onChange={(event) => updateFollowUpDate(index, 'reason', event.target.value)}
-                        placeholder="Enter reason"
-                        aria-label={`Reason for follow-up ${index + 1}`}
-                      />
-                    </div>
-                    {followUpDates.length > 1 && (
-                      <button type="button" className="remove-follow-up" onClick={() => removeFollowUpDate(index)} aria-label={`Remove follow-up date ${index + 1}`}>
-                        ×
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <small className="follow-up-limit">Maximum 10 dates. Leave blank if not needed.</small>
-            </div>
             <label className="span-two">Field note<textarea name="fieldNote" rows="2" defaultValue={editingRecord?.fieldNote} placeholder="Inspection findings, veterinary report…" /></label>
           </div>
           <div className="form-section-label">03 <span>GOSHALA & FINAL ORDER</span></div>
-          <div className="form-grid"><label>Goshala name<input name="goshalaName" defaultValue={editingRecord?.goshalaName} required /></label><label>Goshala phone<input name="goshalaPhone" type="tel" defaultValue={editingRecord?.goshalaPhone} required /></label><label className="span-two">Goshala address<input name="goshalaAddress" defaultValue={editingRecord?.goshalaAddress} required /></label><label>Advocate name<input name="advocateName" defaultValue={editingRecord?.advocateName} required /></label><label>Advocate phone <span className="optional-label">OPTIONAL</span><input name="advocatePhone" type="tel" defaultValue={editingRecord?.advocatePhone} /></label><label>Person working on that case <span className="optional-label">OPTIONAL</span><input name="caseWorker" defaultValue={editingRecord?.caseWorker} placeholder="Staff or volunteer name" /></label><label>Final order date<input name="finalOrderDate" type="date" defaultValue={editingRecord?.finalOrderDate} /></label><label>Amount given after final order <span className="optional-label">OPTIONAL</span><input name="finalOrderAmount" type="number" min="0" step="0.01" defaultValue={editingRecord?.finalOrderAmount || ''} placeholder="e.g. 25000" /></label><label className="span-two">Final order note <span className="optional-label">OPTIONAL</span><textarea name="finalOrderNote" rows="2" defaultValue={editingRecord?.finalOrderNote} placeholder="Final court order summary or remarks" /></label><label>Order reference <span className="optional-label">OPTIONAL</span><input name="orderNo" defaultValue={editingRecord?.orderNo} placeholder="Optional until issued" /></label><label className="checkbox-row"><input type="checkbox" name="important" defaultChecked={Boolean(editingRecord?.important)} /> Mark as important</label></div>
+          <div className="form-grid"><label>Goshala name<input name="goshalaName" defaultValue={editingRecord?.goshalaName} required /></label><label>Goshala phone <span className="optional-label">OPTIONAL</span><input name="goshalaPhone" type="tel" defaultValue={editingRecord?.goshalaPhone} /></label><label className="span-two">Goshala address<input name="goshalaAddress" defaultValue={editingRecord?.goshalaAddress} required /></label><label>Advocate name<input name="advocateName" defaultValue={editingRecord?.advocateName} required /></label><label>Advocate phone <span className="optional-label">OPTIONAL</span><input name="advocatePhone" type="tel" defaultValue={editingRecord?.advocatePhone} /></label><label>Person working on that case <span className="optional-label">OPTIONAL</span><input name="caseWorker" defaultValue={editingRecord?.caseWorker} placeholder="Staff or volunteer name" /></label><label>Final order date<input name="finalOrderDate" type="date" defaultValue={editingRecord?.finalOrderDate} /></label><label>Amount given after final order <span className="optional-label">OPTIONAL</span><input name="finalOrderAmount" type="number" min="0" step="0.01" defaultValue={editingRecord?.finalOrderAmount || ''} placeholder="e.g. 25000" /></label><label className="span-two">Final order note <span className="optional-label">OPTIONAL</span><textarea name="finalOrderNote" rows="2" defaultValue={editingRecord?.finalOrderNote} placeholder="Final court order summary or remarks" /></label><label>Order reference <span className="optional-label">OPTIONAL</span><input name="orderNo" defaultValue={editingRecord?.orderNo} placeholder="Optional until issued" /></label><label className="checkbox-row"><input type="checkbox" name="important" defaultChecked={Boolean(editingRecord?.important)} /> Mark as important</label></div>
           {saveError && <div className="form-error save-error" role="alert">{saveError}</div>}
           <div className="form-footer"><span>Care amount is calculated automatically at ₹250 / cow / day.</span><div><button type="button" className="button button-outline" onClick={() => setShowEditor(false)}>Cancel</button><button type="submit" className="button button-green" disabled={isSaving}>{isSaving ? 'Saving…' : editingRecord ? 'Save changes' : 'Create record'}</button></div></div>
         </form>
