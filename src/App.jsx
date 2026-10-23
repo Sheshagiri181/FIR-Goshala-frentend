@@ -107,6 +107,7 @@ function App() {
       const normalizedQuery = query.trim().toLowerCase()
       const phoneQuery = query.replace(/\D/g, '')
       const searchableText = [
+        record.fileNo,
         ...Object.values(record),
         record.policeStation,
         record.district,
@@ -234,7 +235,7 @@ function App() {
             </div>
             <label className="search-box">
               <span aria-hidden="true" className="search-symbol">⌕</span>
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search FIR, station, district, phone…" aria-label="Search FIR number, vehicle number, date, police station, district, goshala, advocate, or phone number" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search FIR, file number, station, phone…" aria-label="Search FIR number, file number, vehicle number, date, police station, district, goshala, advocate, or phone number" />
               {query && <button className="clear-search" onClick={() => setQuery('')} aria-label="Clear search">×</button>}
             </label>
             <div className="filter-tabs" aria-label="Filter by case stage">
@@ -246,7 +247,7 @@ function App() {
               {filteredRecords.map((record) => (
                 <button key={record.id} className={`record-row ${record.important ? 'important' : ''} ${selectedRecord?.id === record.id ? 'selected' : ''}`} onClick={() => setSelectedId(record.id)}>
                   <span className="record-stage">0{stageFor(record)}</span>
-                  <span className="record-row-main"><strong>{record.important && <span className="important-star" aria-label="Important case">★</span>} FIR {record.firNo}</strong><small>{record.vehicleNo} <i>·</i> {record.cowCount} cattle</small><small className="row-goshala">{record.goshalaName}</small></span>
+                  <span className="record-row-main"><strong>{record.important && <span className="important-star" aria-label="Important case">★</span>}<span>FIR {record.firNo}</span>{record.fileNo && <span className="row-file-no">File {record.fileNo}</span>}</strong><small>{record.vehicleNo} <i>·</i> {record.cowCount} cattle</small><small className="row-goshala">{record.goshalaName}</small></span>
                   <span className="record-row-date">{dateLabel(record.firDate)}</span>
                 </button>
               ))}
@@ -294,7 +295,7 @@ function App() {
                   <div className="detail-section-title section-spaced"><span className="section-kicker">02 / FIELD REPORT</span><span className="section-rule" /></div>
                   <dl className="data-list">
                     <div><dt>Court filing date</dt><dd>{dateLabel(selectedRecord.fieldDate)}</dd></div>
-                    {selectedRecord.fileNo && <div><dt>File number</dt><dd className="mono">{selectedRecord.fileNo}</dd></div>}
+                    <div><dt>File number</dt><dd className="mono">{selectedRecord.fileNo || 'Not provided'}</dd></div>
                     {selectedRecord.courtName && <div><dt>Court name</dt><dd>{selectedRecord.courtName}</dd></div>}
                     <div className="note-row"><dt>Field note</dt><dd>{selectedRecord.fieldNote || 'No field note recorded.'}</dd></div>
                   </dl>

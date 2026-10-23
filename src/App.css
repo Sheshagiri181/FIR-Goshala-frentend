@@ -108,7 +108,9 @@
 .important-star { margin-right: 6px; font-size: 12px; }
 .important-badge { display: inline-block; margin-right: 8px; font-size: 16px; vertical-align: middle; }
 .record-row-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.record-row-main strong { overflow: hidden; color: #323a31; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.record-row-main strong { display: flex; gap: 6px; overflow: hidden; color: #323a31; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.record-row-main strong > span { overflow: hidden; text-overflow: ellipsis; }
+.record-row-main strong .row-file-no { color: #85877f; font-size: 10px; font-weight: 400; }
 .record-row-main small { overflow: hidden; color: #85877f; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .record-row-main small i { padding: 0 2px; color: #b2b3aa; font-style: normal; }
 .record-row-main .row-goshala { color: #6f786a; }
