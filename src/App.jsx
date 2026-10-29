@@ -214,7 +214,7 @@ function App() {
       <main id="home" className="workspace">
         <section className="page-heading">
           <div>
-            <div className="eyebrow"><span className="eyebrow-line" />RAJASTHAN · CATTLE PROTECTION</div>
+            <div className="eyebrow"><span className="eyebrow-line" />Sponsored by Avd G.L.Narsimha rao · CATTLE PROTECTION</div>
             <h1>FIR case register</h1>
             <p className="page-subtitle">A clear record of every case, from first report to final order.</p>
           </div>
