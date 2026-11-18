@@ -243,7 +243,7 @@ function App() {
                 <button key={value} className={stageFilter === value ? 'active' : ''} onClick={() => setStageFilter(value)}>{label}</button>
               ))}
             </div>
-            <div className="record-list">
+            <div className="record-list" role="region" aria-label="Case file list" tabIndex={0}>
               {filteredRecords.map((record) => (
                 <button key={record.id} className={`record-row ${record.important ? 'important' : ''} ${selectedRecord?.id === record.id ? 'selected' : ''}`} onClick={() => setSelectedId(record.id)}>
                   <span className="record-stage">0{stageFor(record)}</span>
